@@ -19,6 +19,8 @@ import {
   Firestore,
 } from 'firebase/firestore';
 
+import { DEFAULT_FIREBASE_CONFIG } from '../config/firebaseConfig';
+
 export interface FirebaseConfig {
   apiKey: string;
   authDomain: string;
@@ -52,7 +54,7 @@ export function getSavedFirebaseConfig(): FirebaseConfig | null {
     };
   }
 
-  return null;
+  return DEFAULT_FIREBASE_CONFIG;
 }
 
 export function saveFirebaseConfig(config: FirebaseConfig): void {

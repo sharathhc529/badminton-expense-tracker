@@ -132,47 +132,72 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     if (!db) return;
 
+    const onError = (label: string) => (e: unknown) => {
+      console.warn(`Firestore ${label} snapshot error (likely not signed in yet)`, e);
+      setIsCloudSynced(false);
+    };
+
     try {
-      const unsubMembers = onSnapshot(collection(db, 'members'), snapshot => {
-        if (!snapshot.empty) {
-          const list: Member[] = [];
-          snapshot.forEach(doc => list.push(doc.data() as Member));
-          setMembers(list);
-        }
-      });
+      const unsubMembers = onSnapshot(
+        collection(db, 'members'),
+        snapshot => {
+          if (!snapshot.empty) {
+            const list: Member[] = [];
+            snapshot.forEach(doc => list.push(doc.data() as Member));
+            setMembers(list);
+          }
+        },
+        onError('members')
+      );
 
-      const unsubExpenses = onSnapshot(collection(db, 'expenses'), snapshot => {
-        if (!snapshot.empty) {
-          const list: Expense[] = [];
-          snapshot.forEach(doc => list.push(doc.data() as Expense));
-          setExpenses(list);
-        }
-      });
+      const unsubExpenses = onSnapshot(
+        collection(db, 'expenses'),
+        snapshot => {
+          if (!snapshot.empty) {
+            const list: Expense[] = [];
+            snapshot.forEach(doc => list.push(doc.data() as Expense));
+            setExpenses(list);
+          }
+        },
+        onError('expenses')
+      );
 
-      const unsubAttendance = onSnapshot(collection(db, 'attendance'), snapshot => {
-        if (!snapshot.empty) {
-          const list: AttendanceSession[] = [];
-          snapshot.forEach(doc => list.push(doc.data() as AttendanceSession));
-          setAttendanceSessions(list);
-        }
-      });
+      const unsubAttendance = onSnapshot(
+        collection(db, 'attendance'),
+        snapshot => {
+          if (!snapshot.empty) {
+            const list: AttendanceSession[] = [];
+            snapshot.forEach(doc => list.push(doc.data() as AttendanceSession));
+            setAttendanceSessions(list);
+          }
+        },
+        onError('attendance')
+      );
 
-      const unsubSettlements = onSnapshot(collection(db, 'settlements'), snapshot => {
-        if (!snapshot.empty) {
-          const list: Settlement[] = [];
-          snapshot.forEach(doc => list.push(doc.data() as Settlement));
-          setSettlements(list);
-        }
-      });
+      const unsubSettlements = onSnapshot(
+        collection(db, 'settlements'),
+        snapshot => {
+          if (!snapshot.empty) {
+            const list: Settlement[] = [];
+            snapshot.forEach(doc => list.push(doc.data() as Settlement));
+            setSettlements(list);
+          }
+        },
+        onError('settlements')
+      );
 
-      const unsubLogs = onSnapshot(collection(db, 'audit_logs'), snapshot => {
-        if (!snapshot.empty) {
-          const list: AuditLog[] = [];
-          snapshot.forEach(doc => list.push(doc.data() as AuditLog));
-          list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          setAuditLogs(list);
-        }
-      });
+      const unsubLogs = onSnapshot(
+        collection(db, 'audit_logs'),
+        snapshot => {
+          if (!snapshot.empty) {
+            const list: AuditLog[] = [];
+            snapshot.forEach(doc => list.push(doc.data() as AuditLog));
+            list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            setAuditLogs(list);
+          }
+        },
+        onError('audit_logs')
+      );
 
       setIsCloudSynced(true);
 
@@ -187,7 +212,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.warn('Firestore snapshot error', e);
       setIsCloudSynced(false);
     }
-  }, []);
+  }, [currentUser]);
 
   // Compute live member balances
   const memberBalances = useMemo(() => {
