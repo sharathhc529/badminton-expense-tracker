@@ -1,20 +1,16 @@
 /**
- * ShuttleLedger - Google Sheets Realtime Auto-Sync Script
+ * ShuttleLedger - Robust Google Sheets Realtime Auto-Sync Script
  * 
  * 💡 SETUP INSTRUCTIONS:
- * 1. Open your Google Sheet in Google Drive (or create a new one at https://sheets.new)
- * 2. Copy the Spreadsheet ID or full URL from your browser address bar:
- *    Example URL: https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
- *    The ID is the part between "/d/" and "/edit"
- * 3. Paste your SPREADSHEET_ID or URL below in SPREADSHEET_ID_OR_URL.
- * 4. Click "Save", then click "Deploy" > "New deployment" > "Web app"
- *    - Execute as: Me
- *    - Who has access: Anyone
- * 5. Copy the Web App URL into ShuttleLedger!
+ * 1. Open your Google Sheet in Google Drive:
+ *    https://docs.google.com/spreadsheets/d/1Fn3TQNSse4Uh1oa1CoWjQGVbLxQv08Fcvx9A-ExBP60/edit
+ * 2. Ensure SPREADSHEET_ID_OR_URL below is set.
+ * 3. In Apps Script, click "Save" (💾).
+ * 4. IMPORTANT: Click "Deploy" > "Manage deployments" > Click "Pencil (Edit)"
+ *    -> Change Version to "New version" -> Click "Deploy"
  */
 
-// 👇 PASTE YOUR GOOGLE SPREADSHEET ID OR FULL GOOGLE SHEET URL HERE:
-var SPREADSHEET_ID_OR_URL = ""; 
+var SPREADSHEET_ID_OR_URL = "https://docs.google.com/spreadsheets/d/1Fn3TQNSse4Uh1oa1CoWjQGVbLxQv08Fcvx9A-ExBP60/edit";
 
 function getTargetSpreadsheet() {
   if (SPREADSHEET_ID_OR_URL && SPREADSHEET_ID_OR_URL.trim() !== "") {
@@ -27,49 +23,65 @@ function getTargetSpreadsheet() {
     }
     return SpreadsheetApp.openById(raw);
   }
-
-  // Fallback if script was created via Extensions > Apps Script
   return SpreadsheetApp.getActiveSpreadsheet();
 }
 
-// GET endpoint to test if webhook is working in browser
+// Test in browser by opening Web App URL
 function doGet(e) {
   try {
     var ss = getTargetSpreadsheet();
     if (!ss) {
-      return HtmlService.createHtmlOutput(
-        "<h3>⚠️ Webhook is active, but no Spreadsheet is linked yet!</h3>" +
-        "<p>Please open <code>code.gs</code>, paste your Google Sheet ID or URL in <code>SPREADSHEET_ID_OR_URL</code>, and redeploy.</p>"
-      );
+      return HtmlService.createHtmlOutput("<h3 style='color:red;'>⚠️ Spreadsheet not found! Check SPREADSHEET_ID_OR_URL.</h3>");
     }
+
+    // Write a test row into Sync_Log to verify write permissions
+    var logSheet = ss.getSheetByName("Sync_Log") || ss.insertSheet("Sync_Log");
+    logSheet.appendRow([new Date(), "Browser Test Visit (doGet)", "Connected to " + ss.getName()]);
+
     return HtmlService.createHtmlOutput(
-      "<div style='font-family:sans-serif;padding:20px;'>" +
-      "<h2 style='color:#10b981;'>✅ ShuttleLedger Google Sheets Webhook is Online!</h2>" +
-      "<p>Connected to Google Sheet: <strong>" + ss.getName() + "</strong></p>" +
-      "<p>URL: <a href='" + ss.getUrl() + "' target='_blank'>" + ss.getUrl() + "</a></p>" +
-      "<p>Any change made in ShuttleLedger will automatically sync to this spreadsheet.</p>" +
+      "<div style='font-family:sans-serif;padding:24px;background:#0f172a;color:#f8fafc;border-radius:12px;max-width:600px;margin:30px auto;'>" +
+      "<h2 style='color:#10b981;margin-top:0;'>✅ ShuttleLedger Webhook is Connected!</h2>" +
+      "<p>Connected Spreadsheet: <strong>" + ss.getName() + "</strong></p>" +
+      "<p>Spreadsheet URL: <a style='color:#38bdf8;' href='" + ss.getUrl() + "' target='_blank'>" + ss.getUrl() + "</a></p>" +
+      "<p style='color:#94a3b8;font-size:13px;'>A test entry was just written to the 'Sync_Log' tab of your spreadsheet to confirm write permissions.</p>" +
       "</div>"
     );
   } catch (err) {
-    return HtmlService.createHtmlOutput("<h3 style='color:red;'>Error connecting to spreadsheet: " + err.toString() + "</h3>");
+    return HtmlService.createHtmlOutput("<h3 style='color:red;'>Error: " + err.toString() + "</h3>");
   }
 }
 
-// POST endpoint called automatically by ShuttleLedger on every update
+// Main POST webhook
 function doPost(e) {
   try {
     var ss = getTargetSpreadsheet();
     if (!ss) {
-      return ContentService.createTextOutput(JSON.stringify({
-        status: "error",
-        message: "No spreadsheet found. Please set SPREADSHEET_ID_OR_URL in code.gs"
-      })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Spreadsheet not found" }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
 
-    var data = JSON.parse(e.postData.contents);
+    // Parse payload from raw body or post data
+    var rawContents = (e && e.postData && e.postData.contents) ? e.postData.contents : "";
+    if (!rawContents && e && e.parameter && e.parameter.data) {
+      rawContents = e.parameter.data;
+    }
+
+    var data = {};
+    if (rawContents) {
+      try {
+        data = JSON.parse(rawContents);
+      } catch (parseErr) {
+        // Log parse error to sheet
+        var debugSheet = ss.getSheetByName("Sync_Log") || ss.insertSheet("Sync_Log");
+        debugSheet.appendRow([new Date(), "Parse Error", parseErr.toString(), rawContents.substring(0, 150)]);
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "JSON Parse error" }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     var timestamp = new Date();
 
-    // 1. Sync Balances Sheet
+    // 1. Balances Tab
     if (data.balances && data.balances.length > 0) {
       var balanceSheet = ss.getSheetByName("Balances") || ss.insertSheet("Balances");
       balanceSheet.clear();
@@ -98,7 +110,7 @@ function doPost(e) {
       balanceSheet.autoResizeColumns(1, 10);
     }
 
-    // 2. Sync Expenses Sheet
+    // 2. Expenses Tab
     if (data.expenses && data.expenses.length > 0) {
       var expSheet = ss.getSheetByName("Expenses") || ss.insertSheet("Expenses");
       expSheet.clear();
@@ -127,7 +139,7 @@ function doPost(e) {
       expSheet.autoResizeColumns(1, 9);
     }
 
-    // 3. Sync Attendance Sheet
+    // 3. Attendance Tab
     if (data.attendance && data.attendance.length > 0) {
       var attSheet = ss.getSheetByName("Attendance") || ss.insertSheet("Attendance");
       attSheet.clear();
@@ -149,19 +161,25 @@ function doPost(e) {
       attSheet.autoResizeColumns(1, 7);
     }
 
-    // 4. Log Sync Event
+    // 4. Log successful sync event
     var syncLogSheet = ss.getSheetByName("Sync_Log") || ss.insertSheet("Sync_Log");
-    syncLogSheet.appendRow([timestamp, "Successful Auto-Sync", (data.expenses ? data.expenses.length : 0) + " Expenses, " + (data.balances ? data.balances.length : 0) + " Players"]);
+    syncLogSheet.appendRow([
+      timestamp, 
+      "Automatic Sync Success", 
+      (data.expenses ? data.expenses.length : 0) + " Expenses, " + 
+      (data.balances ? data.balances.length : 0) + " Balances, " + 
+      (data.attendance ? data.attendance.length : 0) + " Attendance Sessions"
+    ]);
 
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      message: "Google Sheet '" + ss.getName() + "' updated successfully"
+      message: "Synced to " + ss.getName()
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      message: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
+    var errorLogSheet = ss.getSheetByName("Sync_Log") || ss.insertSheet("Sync_Log");
+    errorLogSheet.appendRow([new Date(), "Error", err.toString()]);
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }

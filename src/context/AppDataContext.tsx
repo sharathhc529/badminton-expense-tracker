@@ -211,7 +211,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       await fetch(webhookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         mode: 'no-cors',
         body: JSON.stringify({
           timestamp: new Date().toISOString(),

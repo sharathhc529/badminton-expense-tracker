@@ -169,7 +169,7 @@ export async function syncWithGoogleSheetsWebhook(
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'text/plain;charset=utf-8',
       },
       mode: 'no-cors', // Google Apps Script web app endpoint requirement
       body: JSON.stringify({
