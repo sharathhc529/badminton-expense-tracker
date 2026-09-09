@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, loginWithGoogle, logoutUser, onAuthStateChanged } from '../services/firebase';
 
+export const ADMIN_EMAIL = 'sharathhc529@gmail.com';
+
 export interface CurrentUser {
   uid: string;
   name: string;
@@ -11,6 +13,7 @@ export interface CurrentUser {
 
 interface AuthContextType {
   currentUser: CurrentUser | null;
+  isAdmin: boolean;
   loading: boolean;
   signInGoogle: () => Promise<CurrentUser>;
   signOut: () => Promise<void>;
@@ -86,10 +89,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(newProfile));
   };
 
+  const isAdmin = currentUser ? currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() : false;
+
   return (
     <AuthContext.Provider
       value={{
         currentUser,
+        isAdmin,
         loading,
         signInGoogle,
         signOut,

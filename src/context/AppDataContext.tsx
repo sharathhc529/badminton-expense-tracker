@@ -32,6 +32,7 @@ interface AppDataContextType {
   auditLogs: AuditLog[];
   memberBalances: MemberBalanceSummary[];
   isCloudSynced: boolean;
+  lastSyncedAt: string | null;
 
   // Actions
   addMember: (member: Omit<Member, 'id' | 'createdAt'>) => Promise<string>;
@@ -192,6 +193,10 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return calculateMemberBalances(members, expenses, settlements, attendanceSessions);
   }, [members, expenses, settlements, attendanceSessions]);
 
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(() => {
+    return localStorage.getItem('shuttleledger_last_sync_time') || null;
+  });
+
   // Automatically dispatch to Google Sheets webhook if configured
   const autoSyncToGoogleSheets = async (
     customMembers?: Member[],
@@ -209,8 +214,9 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const activeS = customSettlements || settlements;
       const computedB = calculateMemberBalances(activeM, activeE, activeS, activeA);
 
+      const now = new Date();
       const payloadStr = JSON.stringify({
-        timestamp: new Date().toISOString(),
+        timestamp: now.toISOString(),
         members: activeM,
         expenses: activeE,
         attendance: activeA,
@@ -225,10 +231,23 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
         body: payloadStr,
       });
 
+      const formattedTime = now.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }) + ', ' + now.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+
+      setLastSyncedAt(now.toISOString());
+      localStorage.setItem('shuttleledger_last_sync_time', now.toISOString());
+
       showToast({
         type: 'sheets_sync',
         title: '📊 Google Sheet Synced',
-        description: 'Latest expenses, attendance & balances successfully saved to your Google Drive spreadsheet.',
+        description: `Last synced: ${formattedTime}`,
       });
     } catch (e) {
       console.warn('Auto-sync to Google Sheets background warning:', e);
@@ -641,6 +660,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
         auditLogs,
         memberBalances,
         isCloudSynced,
+        lastSyncedAt,
         addMember,
         updateMember,
         deleteMember,

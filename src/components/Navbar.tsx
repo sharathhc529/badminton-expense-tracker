@@ -19,8 +19,8 @@ import { useAuth } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
 
 interface NavbarProps {
-  activeTab: 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit';
-  setActiveTab: (tab: 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit') => void;
+  activeTab: 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'sheet';
+  setActiveTab: (tab: 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'sheet') => void;
   onOpenCloudSettings: () => void;
   onOpenSheetsModal: () => void;
   onOpenExpenseModal: () => void;
@@ -33,11 +33,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSheetsModal,
   onOpenExpenseModal,
 }) => {
-  const { currentUser, signInGoogle, signOut } = useAuth();
+  const { currentUser, isAdmin, signInGoogle, signOut } = useAuth();
   const { isCloudSynced } = useAppData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navItems = [
+  const baseNavItems = [
     { id: 'dashboard', label: 'Overview', icon: Sparkles },
     { id: 'calendar', label: 'Attendance & Calendar', icon: Calendar },
     { id: 'expenses', label: 'Expenses', icon: Receipt },
@@ -45,6 +45,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'members', label: 'Players', icon: Users },
     { id: 'audit', label: 'Audit Trail', icon: History },
   ] as const;
+
+  const navItems = isAdmin
+    ? [...baseNavItems, { id: 'sheet' as const, label: '/sheet (Admin)', icon: FileSpreadsheet }]
+    : baseNavItems;
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">

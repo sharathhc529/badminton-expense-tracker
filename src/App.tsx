@@ -16,10 +16,28 @@ import { CloudConfigModal } from './components/CloudConfigModal';
 import { Expense } from './types';
 import { Plus } from 'lucide-react';
 
+import { AdminSheetView } from './components/AdminSheetView';
+
 export const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit'>(
-    'dashboard'
-  );
+  const [activeTab, setActiveTab] = useState<
+    'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'sheet'
+  >(() => {
+    if (window.location.hash === '#/sheet' || window.location.search.includes('tab=sheet')) {
+      return 'sheet';
+    }
+    return 'dashboard';
+  });
+
+  // Listen for hash change e.g. typing #/sheet
+  React.useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#/sheet') {
+        setActiveTab('sheet');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Modals state
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState<boolean>(false);
@@ -70,6 +88,8 @@ export const AppContent: React.FC = () => {
         {activeTab === 'members' && <MemberManager />}
 
         {activeTab === 'audit' && <AuditLogView />}
+
+        {activeTab === 'sheet' && <AdminSheetView />}
       </main>
 
       {/* Floating Action Button for Mobile */}
