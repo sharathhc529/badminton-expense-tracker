@@ -8,6 +8,7 @@ import {
   Clock,
   Download,
   LogIn,
+  UploadCloud,
 } from 'lucide-react';
 import { useAuth, ADMIN_EMAIL } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
@@ -17,10 +18,26 @@ import { syncWithGoogleSheetsWebhook, exportBalancesToCSV, exportExpensesToCSV }
 
 export const AdminSheetView: React.FC = () => {
   const { currentUser, isAdmin, signInGoogle } = useAuth();
-  const { members, expenses, attendanceSessions, settlements, memberBalances, lastSyncedAt } = useAppData();
+  const { members, expenses, attendanceSessions, settlements, memberBalances, lastSyncedAt, pushLocalDataToCloud } =
+    useAppData();
 
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [isPushingToCloud, setIsPushingToCloud] = useState<boolean>(false);
+  const [pushStatus, setPushStatus] = useState<string | null>(null);
+
+  const handlePushToCloud = async () => {
+    const confirmed = window.confirm(
+      'This writes everything currently shown in this browser (members, expenses, attendance, settlements, audit logs) into the shared Firestore database, overwriting any matching documents already there. Continue?'
+    );
+    if (!confirmed) return;
+
+    setIsPushingToCloud(true);
+    setPushStatus('Pushing local data to Firestore...');
+    const res = await pushLocalDataToCloud();
+    setIsPushingToCloud(false);
+    setPushStatus(res.message);
+  };
 
   const formattedLastSync = lastSyncedAt
     ? format(parseISO(lastSyncedAt), 'dd MMM yyyy, hh:mm a')
@@ -138,6 +155,32 @@ export const AdminSheetView: React.FC = () => {
         {syncStatus && (
           <div className="text-xs text-emerald-400 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
             {syncStatus}
+          </div>
+        )}
+      </div>
+
+      {/* Push local data to Firestore */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3">
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <UploadCloud className="w-4 h-4 text-emerald-400" />
+          <span>Cloud Database</span>
+        </h2>
+        <p className="text-xs text-slate-400 leading-relaxed">
+          Writes everything currently shown in this browser into the shared Firestore database, so every signed-in
+          member sees the same data instead of their own browser's local copy. Only needed once, or after a bulk
+          local change you want everyone to see.
+        </p>
+        <button
+          onClick={handlePushToCloud}
+          disabled={isPushingToCloud}
+          className="inline-flex items-center space-x-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs border border-slate-700 transition disabled:opacity-50"
+        >
+          <UploadCloud className={`w-3.5 h-3.5 text-emerald-400 ${isPushingToCloud ? 'animate-pulse' : ''}`} />
+          <span>Push Local Data to Firestore</span>
+        </button>
+        {pushStatus && (
+          <div className="text-xs text-emerald-400 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
+            {pushStatus}
           </div>
         )}
       </div>

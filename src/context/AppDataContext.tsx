@@ -55,6 +55,7 @@ interface AppDataContextType {
 
   recalculateMonthlyCourtExpenses: (monthStr: string) => void;
   resetAllData: () => void;
+  pushLocalDataToCloud: () => Promise<{ success: boolean; message: string }>;
 }
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
@@ -670,6 +671,33 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.clear();
   };
 
+  // One-time admin action: write everything currently in the app (local
+  // state) into Firestore, so it becomes the real shared data for everyone.
+  const pushLocalDataToCloud = async (): Promise<{ success: boolean; message: string }> => {
+    if (!db) {
+      return { success: false, message: 'Firestore is not configured.' };
+    }
+
+    try {
+      const writes: Promise<void>[] = [
+        ...members.map(m => setDoc(doc(db, 'members', m.id), m)),
+        ...expenses.map(e => setDoc(doc(db, 'expenses', e.id), e)),
+        ...attendanceSessions.map(a => setDoc(doc(db, 'attendance', a.id), a)),
+        ...settlements.map(s => setDoc(doc(db, 'settlements', s.id), s)),
+        ...auditLogs.map(l => setDoc(doc(db, 'audit_logs', l.id), l)),
+      ];
+
+      await Promise.all(writes);
+
+      return {
+        success: true,
+        message: `Pushed ${members.length} members, ${expenses.length} expenses, ${attendanceSessions.length} attendance sessions, ${settlements.length} settlements, and ${auditLogs.length} audit logs to Firestore.`,
+      };
+    } catch (e: any) {
+      return { success: false, message: e?.message || 'Failed to push data to Firestore.' };
+    }
+  };
+
   return (
     <AppDataContext.Provider
       value={{
@@ -696,6 +724,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
         deleteSettlement,
         recalculateMonthlyCourtExpenses,
         resetAllData,
+        pushLocalDataToCloud,
       }}
     >
       {children}
