@@ -22,24 +22,21 @@ import {
   syncWithGoogleSheetsWebhook,
 } from '../services/sheetsExport';
 import { format, parseISO } from 'date-fns';
+import { SPREADSHEET_DIRECT_URL, DEFAULT_SHEETS_WEBHOOK_URL } from '../config/sheetsSync';
 
 interface GoogleSheetsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const SPREADSHEET_DIRECT_URL =
-  'https://docs.google.com/spreadsheets/d/1Fn3TQNSse4Uh1oa1CoWjQGVbLxQv08Fcvx9A-ExBP60/edit';
+export { SPREADSHEET_DIRECT_URL };
 
 export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({ isOpen, onClose }) => {
   const { currentUser, isAdmin } = useAuth();
   const { members, expenses, attendanceSessions, settlements, auditLogs, memberBalances, lastSyncedAt } = useAppData();
 
   const [webhookUrl, setWebhookUrl] = useState<string>(() => {
-    return (
-      localStorage.getItem('shuttleledger_sheets_webhook') ||
-      'https://script.google.com/macros/s/AKfycbyi.../exec'
-    );
+    return localStorage.getItem('shuttleledger_sheets_webhook') || DEFAULT_SHEETS_WEBHOOK_URL;
   });
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);

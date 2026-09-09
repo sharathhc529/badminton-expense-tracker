@@ -12,7 +12,7 @@ import {
 import { useAuth, ADMIN_EMAIL } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
 import { format, parseISO } from 'date-fns';
-import { SPREADSHEET_DIRECT_URL } from './GoogleSheetsModal';
+import { SPREADSHEET_DIRECT_URL, DEFAULT_SHEETS_WEBHOOK_URL } from '../config/sheetsSync';
 import { syncWithGoogleSheetsWebhook, exportBalancesToCSV, exportExpensesToCSV } from '../services/sheetsExport';
 
 export const AdminSheetView: React.FC = () => {
@@ -27,8 +27,7 @@ export const AdminSheetView: React.FC = () => {
     : 'Not synced yet';
 
   const handleManualSync = async () => {
-    const webhookUrl = localStorage.getItem('shuttleledger_sheets_webhook');
-    if (!webhookUrl) return;
+    const webhookUrl = localStorage.getItem('shuttleledger_sheets_webhook') || DEFAULT_SHEETS_WEBHOOK_URL;
 
     setIsSyncing(true);
     setSyncStatus('Dispatching live sync...');

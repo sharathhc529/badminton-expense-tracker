@@ -4,6 +4,13 @@
 
 var SPREADSHEET_ID_OR_URL = "https://docs.google.com/spreadsheets/d/1Fn3TQNSse4Uh1oa1CoWjQGVbLxQv08Fcvx9A-ExBP60/edit";
 
+// IMPORTANT: Set this to match SHEETS_SYNC_TOKEN in src/config/sheetsSync.ts.
+// Set the real value directly here in the script.google.com editor when you
+// deploy — do NOT commit the real token to git, since this file is public.
+// This is a soft deterrent against generic bots that scan public GitHub for
+// exposed script.google.com URLs, not real authentication.
+var SYNC_TOKEN = "REPLACE_WITH_YOUR_OWN_SECRET_TOKEN";
+
 function getTargetSpreadsheet() {
   if (SPREADSHEET_ID_OR_URL && SPREADSHEET_ID_OR_URL.trim() !== "") {
     var raw = SPREADSHEET_ID_OR_URL.trim();
@@ -58,6 +65,11 @@ function doPost(e) {
     }
 
     var data = JSON.parse(raw);
+
+    if (!data.syncToken || data.syncToken !== SYNC_TOKEN) {
+      logSheet.appendRow([new Date(), "Rejected", "Invalid or missing syncToken"]);
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized" })).setMimeType(ContentService.MimeType.JSON);
+    }
 
     // Extract arrays with fallbacks
     var balances = data.balances || (data.data && data.data.balances) || [];

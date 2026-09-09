@@ -22,6 +22,7 @@ import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { db } from '../services/firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { DEFAULT_SHEETS_WEBHOOK_URL, SHEETS_SYNC_TOKEN } from '../config/sheetsSync';
 
 interface AppDataContextType {
   members: Member[];
@@ -205,8 +206,8 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     customSettlements?: Settlement[]
   ) => {
     try {
-      const webhookUrl = localStorage.getItem('shuttleledger_sheets_webhook');
-      if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com')) return;
+      const webhookUrl = localStorage.getItem('shuttleledger_sheets_webhook') || DEFAULT_SHEETS_WEBHOOK_URL;
+      if (!webhookUrl.startsWith('https://script.google.com')) return;
 
       const activeM = customMembers || members;
       const activeE = customExpenses || expenses;
@@ -217,6 +218,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const now = new Date();
       const payloadStr = JSON.stringify({
         timestamp: now.toISOString(),
+        syncToken: SHEETS_SYNC_TOKEN,
         members: activeM,
         expenses: activeE,
         attendance: activeA,

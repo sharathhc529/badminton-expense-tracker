@@ -1,5 +1,6 @@
 import { Member, Expense, AttendanceSession, Settlement, AuditLog, MemberBalanceSummary } from '../types';
 import { formatCurrency } from './calculation';
+import { SHEETS_SYNC_TOKEN } from '../config/sheetsSync';
 
 /**
  * Convert an array of objects to CSV string
@@ -174,6 +175,7 @@ export async function syncWithGoogleSheetsWebhook(
       mode: 'no-cors', // Google Apps Script web app endpoint requirement
       body: JSON.stringify({
         timestamp: new Date().toISOString(),
+        syncToken: SHEETS_SYNC_TOKEN,
         ...payload,
       }),
     });
