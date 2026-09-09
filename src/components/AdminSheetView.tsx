@@ -5,21 +5,18 @@ import {
   ShieldCheck,
   Lock,
   RefreshCw,
-  Clock,
   Download,
   LogIn,
   UploadCloud,
 } from 'lucide-react';
 import { useAuth, ADMIN_EMAIL } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
-import { format, parseISO } from 'date-fns';
 import { SPREADSHEET_DIRECT_URL, DEFAULT_SHEETS_WEBHOOK_URL } from '../config/sheetsSync';
 import { syncWithGoogleSheetsWebhook, exportBalancesToCSV, exportExpensesToCSV } from '../services/sheetsExport';
 
 export const AdminSheetView: React.FC = () => {
   const { currentUser, isAdmin, signInGoogle } = useAuth();
-  const { members, expenses, attendanceSessions, settlements, memberBalances, lastSyncedAt, pushLocalDataToCloud } =
-    useAppData();
+  const { members, expenses, attendanceSessions, settlements, memberBalances, pushLocalDataToCloud } = useAppData();
 
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
@@ -38,10 +35,6 @@ export const AdminSheetView: React.FC = () => {
     setIsPushingToCloud(false);
     setPushStatus(res.message);
   };
-
-  const formattedLastSync = lastSyncedAt
-    ? format(parseISO(lastSyncedAt), 'dd MMM yyyy, hh:mm a')
-    : 'Not synced yet';
 
   const handleManualSync = async () => {
     const webhookUrl = localStorage.getItem('shuttleledger_sheets_webhook') || DEFAULT_SHEETS_WEBHOOK_URL;
@@ -130,30 +123,9 @@ export const AdminSheetView: React.FC = () => {
             <span>Force Resync Now</span>
           </button>
         </div>
-      </div>
-
-      {/* Sync Diagnostics & Status */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-        <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-          <Clock className="w-4 h-4 text-emerald-400" />
-          <span>Real-time Sync Diagnostics</span>
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-            <span className="text-[11px] text-slate-400 uppercase font-semibold">Last Auto-Sync Timestamp</span>
-            <div className="text-base font-bold text-white mt-1">{formattedLastSync}</div>
-          </div>
-          <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-            <span className="text-[11px] text-slate-400 uppercase font-semibold">Sync Target Document</span>
-            <div className="text-base font-bold text-emerald-400 mt-1 truncate">
-              Badminton ShuttleLedger
-            </div>
-          </div>
-        </div>
 
         {syncStatus && (
-          <div className="text-xs text-emerald-400 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
+          <div className="text-xs text-emerald-300 bg-black/20 p-3 rounded-xl border border-emerald-500/20">
             {syncStatus}
           </div>
         )}

@@ -1,6 +1,8 @@
 import React from 'react';
-import { LogOut, LogIn, Menu } from 'lucide-react';
+import { LogOut, LogIn, Menu, FileSpreadsheet } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
+import { useAppData } from '../context/AppDataContext';
 import { Tab } from './Sidebar';
 
 interface NavbarProps {
@@ -9,7 +11,8 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ setActiveTab, onToggleSidebar }) => {
-  const { currentUser, signInGoogle, signOut } = useAuth();
+  const { currentUser, isAdmin, signInGoogle, signOut } = useAuth();
+  const { lastSyncedAt } = useAppData();
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
@@ -40,8 +43,22 @@ export const Navbar: React.FC<NavbarProps> = ({ setActiveTab, onToggleSidebar })
             </div>
           </div>
 
-          {/* Right: Google User Profile / Sign-in */}
-          <div className="flex items-center">
+          {/* Right: Sheet sync status (admin only) + Google User Profile / Sign-in */}
+          <div className="flex items-center space-x-3">
+            {isAdmin && (
+              <div
+                title="Last successful sync to Google Sheet"
+                className="hidden lg:flex items-center space-x-1.5 text-[11px] text-slate-400 bg-slate-800/60 border border-slate-700/50 px-2.5 py-1 rounded-full"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>
+                  Sheet synced:{' '}
+                  <strong className="text-slate-300 font-medium">
+                    {lastSyncedAt ? format(parseISO(lastSyncedAt), 'dd MMM, hh:mm a') : 'never'}
+                  </strong>
+                </span>
+              </div>
+            )}
             {currentUser ? (
               <div className="flex items-center space-x-2">
                 <img
