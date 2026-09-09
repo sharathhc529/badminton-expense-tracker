@@ -75,6 +75,11 @@ function doPost(e) {
     var balances = data.balances || (data.data && data.data.balances) || [];
     var expenses = data.expenses || (data.data && data.data.expenses) || [];
     var attendance = data.attendance || (data.data && data.data.attendance) || [];
+    var members = data.members || (data.data && data.data.members) || [];
+
+    // Lookup for resolving attendee member IDs to display names
+    var memberNameById = {};
+    members.forEach(function(m) { memberNameById[m.id] = m.name; });
 
     // 1. Sync Balances Sheet
     if (balances && balances.length > 0) {
@@ -138,16 +143,19 @@ function doPost(e) {
     if (attendance && attendance.length > 0) {
       var attSheet = ss.getSheetByName("Attendance") || ss.insertSheet("Attendance");
       attSheet.clear();
-      attSheet.appendRow(["Date", "Time Slot", "Total Attendees", "Attendee IDs/Names", "Guest Players", "Notes", "Updated At"]);
+      attSheet.appendRow(["Date", "Time Slot", "Total Attendees", "Attendee Names", "Guest Players", "Notes", "Updated At"]);
       attSheet.getRange("A1:G1").setFontWeight("bold").setBackground("#0284c7").setFontColor("#ffffff");
 
       attendance.forEach(function(att) {
+        var attendeeNames = (att.attendeeIds || []).map(function(id) {
+          return memberNameById[id] || id;
+        }).join(", ");
         var guests = (att.guestAttendees || []).map(function(g) { return g.name; }).join(", ");
         attSheet.appendRow([
           att.date,
           att.timeSlot,
           (att.attendeeIds ? att.attendeeIds.length : 0) + (att.guestAttendees ? att.guestAttendees.length : 0),
-          (att.attendeeIds || []).join(", "),
+          attendeeNames,
           guests,
           att.notes || "",
           att.updatedAt || new Date().toISOString()
