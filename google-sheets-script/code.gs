@@ -1,13 +1,5 @@
 /**
- * ShuttleLedger - Robust Google Sheets Realtime Auto-Sync Script
- * 
- * 💡 SETUP INSTRUCTIONS:
- * 1. Open your Google Sheet in Google Drive:
- *    https://docs.google.com/spreadsheets/d/1Fn3TQNSse4Uh1oa1CoWjQGVbLxQv08Fcvx9A-ExBP60/edit
- * 2. Ensure SPREADSHEET_ID_OR_URL below is set.
- * 3. In Apps Script, click "Save" (💾).
- * 4. IMPORTANT: Click "Deploy" > "Manage deployments" > Click "Pencil (Edit)"
- *    -> Change Version to "New version" -> Click "Deploy"
+ * ShuttleLedger - Google Sheets Realtime Auto-Sync Script
  */
 
 var SPREADSHEET_ID_OR_URL = "https://docs.google.com/spreadsheets/d/1Fn3TQNSse4Uh1oa1CoWjQGVbLxQv08Fcvx9A-ExBP60/edit";
@@ -26,24 +18,17 @@ function getTargetSpreadsheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
 }
 
-// Test in browser by opening Web App URL
 function doGet(e) {
   try {
     var ss = getTargetSpreadsheet();
-    if (!ss) {
-      return HtmlService.createHtmlOutput("<h3 style='color:red;'>⚠️ Spreadsheet not found! Check SPREADSHEET_ID_OR_URL.</h3>");
-    }
-
-    // Write a test row into Sync_Log to verify write permissions
     var logSheet = ss.getSheetByName("Sync_Log") || ss.insertSheet("Sync_Log");
-    logSheet.appendRow([new Date(), "Browser Test Visit (doGet)", "Connected to " + ss.getName()]);
-
+    logSheet.appendRow([new Date(), "Browser GET Test", "Connected successfully"]);
+    
     return HtmlService.createHtmlOutput(
       "<div style='font-family:sans-serif;padding:24px;background:#0f172a;color:#f8fafc;border-radius:12px;max-width:600px;margin:30px auto;'>" +
       "<h2 style='color:#10b981;margin-top:0;'>✅ ShuttleLedger Webhook is Connected!</h2>" +
       "<p>Connected Spreadsheet: <strong>" + ss.getName() + "</strong></p>" +
       "<p>Spreadsheet URL: <a style='color:#38bdf8;' href='" + ss.getUrl() + "' target='_blank'>" + ss.getUrl() + "</a></p>" +
-      "<p style='color:#94a3b8;font-size:13px;'>A test entry was just written to the 'Sync_Log' tab of your spreadsheet to confirm write permissions.</p>" +
       "</div>"
     );
   } catch (err) {
@@ -51,38 +36,36 @@ function doGet(e) {
   }
 }
 
-// Main POST webhook
 function doPost(e) {
+  var ss = getTargetSpreadsheet();
+  var logSheet = ss.getSheetByName("Sync_Log") || ss.insertSheet("Sync_Log");
+
   try {
-    var ss = getTargetSpreadsheet();
-    if (!ss) {
-      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Spreadsheet not found" }))
-        .setMimeType(ContentService.MimeType.JSON);
+    var raw = "";
+    if (e && e.postData && e.postData.contents) {
+      raw = e.postData.contents;
+    } else if (e && e.parameter && e.parameter.data) {
+      raw = e.parameter.data;
+    } else if (e && e.parameters && e.parameters.data) {
+      raw = e.parameters.data[0];
     }
 
-    // Parse payload from raw body or post data
-    var rawContents = (e && e.postData && e.postData.contents) ? e.postData.contents : "";
-    if (!rawContents && e && e.parameter && e.parameter.data) {
-      rawContents = e.parameter.data;
+    logSheet.appendRow([new Date(), "doPost Received", "Payload Length: " + (raw ? raw.length : 0)]);
+
+    if (!raw) {
+      logSheet.appendRow([new Date(), "Warning", "Empty payload received"]);
+      return ContentService.createTextOutput("Empty payload").setMimeType(ContentService.MimeType.TEXT);
     }
 
-    var data = {};
-    if (rawContents) {
-      try {
-        data = JSON.parse(rawContents);
-      } catch (parseErr) {
-        // Log parse error to sheet
-        var debugSheet = ss.getSheetByName("Sync_Log") || ss.insertSheet("Sync_Log");
-        debugSheet.appendRow([new Date(), "Parse Error", parseErr.toString(), rawContents.substring(0, 150)]);
-        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "JSON Parse error" }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-    }
+    var data = JSON.parse(raw);
 
-    var timestamp = new Date();
+    // Extract arrays with fallbacks
+    var balances = data.balances || (data.data && data.data.balances) || [];
+    var expenses = data.expenses || (data.data && data.data.expenses) || [];
+    var attendance = data.attendance || (data.data && data.data.attendance) || [];
 
-    // 1. Balances Tab
-    if (data.balances && data.balances.length > 0) {
+    // 1. Sync Balances Sheet
+    if (balances && balances.length > 0) {
       var balanceSheet = ss.getSheetByName("Balances") || ss.insertSheet("Balances");
       balanceSheet.clear();
       balanceSheet.appendRow([
@@ -92,7 +75,7 @@ function doPost(e) {
       ]);
       balanceSheet.getRange("A1:J1").setFontWeight("bold").setBackground("#10b981").setFontColor("#ffffff");
 
-      data.balances.forEach(function(b) {
+      balances.forEach(function(b) {
         var status = b.netBalance > 0 ? "In Advance (Surplus)" : (b.netBalance < 0 ? "Pending Due (To Pay)" : "Cleared");
         balanceSheet.appendRow([
           b.memberName,
@@ -110,8 +93,8 @@ function doPost(e) {
       balanceSheet.autoResizeColumns(1, 10);
     }
 
-    // 2. Expenses Tab
-    if (data.expenses && data.expenses.length > 0) {
+    // 2. Sync Expenses Sheet
+    if (expenses && expenses.length > 0) {
       var expSheet = ss.getSheetByName("Expenses") || ss.insertSheet("Expenses");
       expSheet.clear();
       expSheet.appendRow([
@@ -119,7 +102,7 @@ function doPost(e) {
       ]);
       expSheet.getRange("A1:I1").setFontWeight("bold").setBackground("#0d9488").setFontColor("#ffffff");
 
-      data.expenses.forEach(function(exp) {
+      expenses.forEach(function(exp) {
         var splitsStr = (exp.splits || []).map(function(s) {
           return s.memberName + ": ₹" + s.amount + (s.daysAttended !== undefined ? " (" + s.daysAttended + "d)" : "");
         }).join("; ");
@@ -139,14 +122,14 @@ function doPost(e) {
       expSheet.autoResizeColumns(1, 9);
     }
 
-    // 3. Attendance Tab
-    if (data.attendance && data.attendance.length > 0) {
+    // 3. Sync Attendance Sheet
+    if (attendance && attendance.length > 0) {
       var attSheet = ss.getSheetByName("Attendance") || ss.insertSheet("Attendance");
       attSheet.clear();
       attSheet.appendRow(["Date", "Time Slot", "Total Attendees", "Attendee IDs/Names", "Guest Players", "Notes", "Updated At"]);
       attSheet.getRange("A1:G1").setFontWeight("bold").setBackground("#0284c7").setFontColor("#ffffff");
 
-      data.attendance.forEach(function(att) {
+      attendance.forEach(function(att) {
         var guests = (att.guestAttendees || []).map(function(g) { return g.name; }).join(", ");
         attSheet.appendRow([
           att.date,
@@ -161,25 +144,16 @@ function doPost(e) {
       attSheet.autoResizeColumns(1, 7);
     }
 
-    // 4. Log successful sync event
-    var syncLogSheet = ss.getSheetByName("Sync_Log") || ss.insertSheet("Sync_Log");
-    syncLogSheet.appendRow([
-      timestamp, 
-      "Automatic Sync Success", 
-      (data.expenses ? data.expenses.length : 0) + " Expenses, " + 
-      (data.balances ? data.balances.length : 0) + " Balances, " + 
-      (data.attendance ? data.attendance.length : 0) + " Attendance Sessions"
+    logSheet.appendRow([
+      new Date(), 
+      "Sync Success", 
+      balances.length + " Balances, " + expenses.length + " Expenses, " + attendance.length + " Attendance sessions written."
     ]);
 
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      message: "Synced to " + ss.getName()
-    })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
-    var errorLogSheet = ss.getSheetByName("Sync_Log") || ss.insertSheet("Sync_Log");
-    errorLogSheet.appendRow([new Date(), "Error", err.toString()]);
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    logSheet.appendRow([new Date(), "Error in doPost", err.toString()]);
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }

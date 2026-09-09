@@ -209,18 +209,20 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const activeS = customSettlements || settlements;
       const computedB = calculateMemberBalances(activeM, activeE, activeS, activeA);
 
+      const payloadStr = JSON.stringify({
+        timestamp: new Date().toISOString(),
+        members: activeM,
+        expenses: activeE,
+        attendance: activeA,
+        settlements: activeS,
+        balances: computedB,
+      });
+
       await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         mode: 'no-cors',
-        body: JSON.stringify({
-          timestamp: new Date().toISOString(),
-          members: activeM,
-          expenses: activeE,
-          attendance: activeA,
-          settlements: activeS,
-          balances: computedB,
-        }),
+        body: payloadStr,
       });
 
       showToast({
