@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { AppDataProvider } from './context/AppDataContext';
 import { Navbar } from './components/Navbar';
+import { Sidebar, Tab } from './components/Sidebar';
 import { DashboardOverview } from './components/DashboardOverview';
 import { AttendanceCalendar } from './components/AttendanceCalendar';
 import { ExpenseList } from './components/ExpenseList';
@@ -17,8 +18,6 @@ import { Expense } from './types';
 import { Plus } from 'lucide-react';
 
 import { AdminSheetView } from './components/AdminSheetView';
-
-type Tab = 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'sheet' | 'poll';
 
 const TAB_FOR_HASH: Record<string, Tab> = {
   '#/sheet': 'sheet',
@@ -48,6 +47,7 @@ export const AppContent: React.FC = () => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState<boolean>(false);
   const [isSheetsModalOpen, setIsSheetsModalOpen] = useState<boolean>(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
   const handleOpenAddExpense = () => {
     setEditingExpense(null);
@@ -60,41 +60,49 @@ export const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white pb-16 lg:pb-8">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white pb-16 lg:pb-0">
       {/* Top Navigation */}
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenSheetsModal={() => setIsSheetsModalOpen(true)}
-        onOpenExpenseModal={handleOpenAddExpense}
-      />
+      <Navbar setActiveTab={setActiveTab} onToggleSidebar={() => setIsSidebarOpen(true)} />
 
-      {/* Main Content Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab === 'dashboard' && (
-          <DashboardOverview
-            onNavigateTab={setActiveTab}
-            onOpenExpenseModal={handleOpenAddExpense}
-            onOpenSettlementModal={() => setIsSettlementModalOpen(true)}
-          />
-        )}
+      <div className="flex-1 flex">
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onOpenExpenseModal={handleOpenAddExpense}
+          onOpenSheetsModal={() => setIsSheetsModalOpen(true)}
+        />
 
-        {activeTab === 'calendar' && <AttendanceCalendar />}
+        {/* Main Content Body */}
+        <main className="flex-1 min-w-0">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {activeTab === 'dashboard' && (
+              <DashboardOverview
+                onNavigateTab={setActiveTab}
+                onOpenExpenseModal={handleOpenAddExpense}
+                onOpenSettlementModal={() => setIsSettlementModalOpen(true)}
+              />
+            )}
 
-        {activeTab === 'expenses' && (
-          <ExpenseList onOpenExpenseModal={handleOpenAddExpense} onEditExpense={handleOpenEditExpense} />
-        )}
+            {activeTab === 'calendar' && <AttendanceCalendar />}
 
-        {activeTab === 'balances' && <BalancesLedger />}
+            {activeTab === 'expenses' && (
+              <ExpenseList onOpenExpenseModal={handleOpenAddExpense} onEditExpense={handleOpenEditExpense} />
+            )}
 
-        {activeTab === 'members' && <MemberManager />}
+            {activeTab === 'balances' && <BalancesLedger />}
 
-        {activeTab === 'audit' && <AuditLogView />}
+            {activeTab === 'members' && <MemberManager />}
 
-        {activeTab === 'sheet' && <AdminSheetView />}
+            {activeTab === 'audit' && <AuditLogView />}
 
-        {activeTab === 'poll' && <PollView onNavigateTab={setActiveTab} />}
-      </main>
+            {activeTab === 'sheet' && <AdminSheetView />}
+
+            {activeTab === 'poll' && <PollView onNavigateTab={setActiveTab} />}
+          </div>
+        </main>
+      </div>
 
       {/* Floating Action Button for Mobile */}
       <div className="fixed bottom-6 right-6 lg:hidden z-30">
