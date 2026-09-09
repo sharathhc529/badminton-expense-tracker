@@ -27,10 +27,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newToast: ToastMessage = { ...toast, id };
     setToasts(prev => [...prev, newToast]);
 
-    // Auto-dismiss after 4 seconds
+    // Auto-dismiss after 10 seconds (user can also close early via the X button)
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 4000);
+    }, 10000);
   }, []);
 
   return (

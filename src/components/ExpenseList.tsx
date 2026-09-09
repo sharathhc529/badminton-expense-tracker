@@ -13,6 +13,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { useToast } from '../context/ToastContext';
 import { Expense, ExpenseCategory } from '../types';
 import { formatCurrency } from '../services/calculation';
 import { exportExpensesToCSV } from '../services/sheetsExport';
@@ -24,6 +25,7 @@ interface ExpenseListProps {
 
 export const ExpenseList: React.FC<ExpenseListProps> = ({ onOpenExpenseModal, onEditExpense }) => {
   const { expenses, deleteExpense } = useAppData();
+  const { showToast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -75,6 +77,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({ onOpenExpenseModal, on
   const handleDelete = async (id: string, title: string) => {
     if (window.confirm(`Are you sure you want to delete expense "${title}"?`)) {
       await deleteExpense(id);
+      showToast({ type: 'success', title: 'Expense Deleted', description: `"${title}" was removed.` });
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Receipt, Users, Calculator, Info, Check } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { useToast } from '../context/ToastContext';
 import { Expense, ExpenseCategory, SplitType } from '../types';
 import { calculateSplits, formatCurrency, getMonthlyAttendanceCounts } from '../services/calculation';
 
@@ -13,6 +14,7 @@ interface ExpenseModalProps {
 
 export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, editingExpense }) => {
   const { members, attendanceSessions, addExpense, updateExpense } = useAppData();
+  const { showToast } = useToast();
 
   const [title, setTitle] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
@@ -113,8 +115,18 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, edi
 
     if (editingExpense) {
       await updateExpense(editingExpense.id, expensePayload);
+      showToast({
+        type: 'success',
+        title: 'Expense Updated',
+        description: `"${expensePayload.title}" updated to ${formatCurrency(expensePayload.amount)}.`,
+      });
     } else {
       await addExpense(expensePayload);
+      showToast({
+        type: 'success',
+        title: 'Expense Added',
+        description: `"${expensePayload.title}" for ${formatCurrency(expensePayload.amount)} split among ${expensePayload.splits.length} ${expensePayload.splits.length === 1 ? 'player' : 'players'}.`,
+      });
     }
 
     onClose();

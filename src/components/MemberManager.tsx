@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Users, UserPlus, Phone, Mail, Trash2, Edit2, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { useToast } from '../context/ToastContext';
 import { Member } from '../types';
 
 export const MemberManager: React.FC = () => {
   const { members, addMember, updateMember, deleteMember } = useAppData();
+  const { showToast } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
@@ -47,6 +49,7 @@ export const MemberManager: React.FC = () => {
         isGuest,
         isActive,
       });
+      showToast({ type: 'success', title: 'Player Updated', description: `"${name.trim()}" was updated.` });
     } else {
       await addMember({
         name: name.trim(),
@@ -56,6 +59,7 @@ export const MemberManager: React.FC = () => {
         isGuest,
         isActive,
       });
+      showToast({ type: 'success', title: 'Player Added', description: `"${name.trim()}" was added to the players list.` });
     }
 
     setIsModalOpen(false);
@@ -64,6 +68,7 @@ export const MemberManager: React.FC = () => {
   const handleDelete = async (id: string, memberName: string) => {
     if (window.confirm(`Are you sure you want to remove "${memberName}" from the players list?`)) {
       await deleteMember(id);
+      showToast({ type: 'success', title: 'Player Removed', description: `"${memberName}" was removed from the players list.` });
     }
   };
 

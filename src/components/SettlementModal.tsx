@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Wallet, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAppData } from '../context/AppDataContext';
+import { useToast } from '../context/ToastContext';
 import { formatCurrency } from '../services/calculation';
 
 interface SettlementModalProps {
@@ -21,6 +22,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
   defaultAmount,
 }) => {
   const { members, recordSettlement } = useAppData();
+  const { showToast } = useToast();
 
   const [fromMemberId, setFromMemberId] = useState<string>('');
   const [toMemberId, setToMemberId] = useState<string>('');
@@ -66,15 +68,24 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
     const fromMember = members.find(m => m.id === fromMemberId);
     const toMember = toMemberId === 'group_pool' ? { name: 'Group Pool' } : members.find(m => m.id === toMemberId);
 
+    const toName = toMember ? toMember.name : 'Group Pool';
+    const fromName = fromMember ? fromMember.name : 'Unknown';
+
     await recordSettlement({
       date,
       fromMemberId,
-      fromMemberName: fromMember ? fromMember.name : 'Unknown',
+      fromMemberName: fromName,
       toMemberId,
-      toMemberName: toMember ? toMember.name : 'Group Pool',
+      toMemberName: toName,
       amount: parsedAmount,
       paymentMethod,
       notes: notes.trim(),
+    });
+
+    showToast({
+      type: 'success',
+      title: 'Settlement Recorded',
+      description: `${fromName} paid ${formatCurrency(parsedAmount)} to ${toName} via ${paymentMethod}.`,
     });
 
     // Trigger celebration confetti

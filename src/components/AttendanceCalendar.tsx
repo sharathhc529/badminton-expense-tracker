@@ -24,6 +24,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { useToast } from '../context/ToastContext';
 import { exportAttendanceToCSV } from '../services/sheetsExport';
 import { GuestAttendee } from '../types';
 
@@ -34,6 +35,7 @@ export const AttendanceCalendar: React.FC<{ initialSelectedDate?: string }> = ({
     saveAttendanceSession,
     recalculateMonthlyCourtExpenses,
   } = useAppData();
+  const { showToast } = useToast();
 
   const [currentMonth, setCurrentMonth] = useState<Date>(
     initialSelectedDate ? parseISO(initialSelectedDate) : new Date()
@@ -147,6 +149,11 @@ export const AttendanceCalendar: React.FC<{ initialSelectedDate?: string }> = ({
       notes: sessionNotes,
     });
     recalculateMonthlyCourtExpenses(selectedDate.slice(0, 7));
+    showToast({
+      type: 'success',
+      title: 'Attendance Updated',
+      description: `${attendeeIds.length + guestAttendees.length} player(s) marked for ${format(parseISO(selectedDate), 'dd MMM yyyy')}.`,
+    });
     setIsEditingModalOpen(false);
   };
 

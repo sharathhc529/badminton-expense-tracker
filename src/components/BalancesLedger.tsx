@@ -13,12 +13,14 @@ import {
   Clock,
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { useToast } from '../context/ToastContext';
 import { formatCurrency } from '../services/calculation';
 import { exportBalancesToCSV } from '../services/sheetsExport';
 import { SettlementModal } from './SettlementModal';
 
 export const BalancesLedger: React.FC = () => {
   const { memberBalances, settlements, deleteSettlement, members } = useAppData();
+  const { showToast } = useToast();
 
   const [settlementModalOpen, setSettlementModalOpen] = useState<boolean>(false);
   const [selectedMemberForSettlement, setSelectedMemberForSettlement] = useState<{
@@ -64,6 +66,7 @@ export const BalancesLedger: React.FC = () => {
   const handleDeleteSettlement = async (id: string) => {
     if (window.confirm('Delete this settlement payment record?')) {
       await deleteSettlement(id);
+      showToast({ type: 'success', title: 'Settlement Deleted', description: 'The settlement record was removed.' });
     }
   };
 

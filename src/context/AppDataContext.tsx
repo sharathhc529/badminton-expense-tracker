@@ -24,6 +24,18 @@ import { db } from '../services/firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { DEFAULT_SHEETS_WEBHOOK_URL, SHEETS_SYNC_TOKEN } from '../config/sheetsSync';
 
+// A failed cloud write (not signed in, permission denied, network hiccup) must
+// never block the local save from completing — local state is already
+// updated by the time this runs, so we only log the failure instead of
+// letting it reject the caller's promise.
+async function safeFirestoreWrite(write: () => Promise<void>, label: string): Promise<void> {
+  try {
+    await write();
+  } catch (e) {
+    console.warn(`Firestore ${label} write failed (local save still succeeded)`, e);
+  }
+}
+
 interface AppDataContextType {
   members: Member[];
   expenses: Expense[];
@@ -290,7 +302,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
         uid: currentUser?.uid || 'guest_user',
         name: currentUser?.name || 'Anonymous Player',
         email: currentUser?.email || 'unknown@example.com',
-        photoURL: currentUser?.photoURL,
+        photoURL: currentUser?.photoURL || null,
       },
       action,
       targetType,
@@ -352,7 +364,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
 
     if (db) {
-      await setDoc(doc(db, 'members', id), newMember);
+      await safeFirestoreWrite(() => setDoc(doc(db, 'members', id), newMember), 'members');
     }
     autoSyncToGoogleSheets(newMembers);
     return id;
@@ -368,7 +380,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await logAudit('UPDATE_MEMBER', 'member', `${currentUser?.name || 'User'} updated member "${target.name}"`);
 
     if (db) {
-      await setDoc(doc(db, 'members', id), updated);
+      await safeFirestoreWrite(() => setDoc(doc(db, 'members', id), updated), 'members');
     }
     autoSyncToGoogleSheets(newMembers);
   };
@@ -382,7 +394,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await logAudit('DELETE_MEMBER', 'member', `${currentUser?.name || 'User'} removed member "${target.name}"`);
 
     if (db) {
-      await deleteDoc(doc(db, 'members', id));
+      await safeFirestoreWrite(() => deleteDoc(doc(db, 'members', id)), 'members');
     }
     autoSyncToGoogleSheets(newMembers);
   };
@@ -410,7 +422,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
 
     if (db) {
-      await setDoc(doc(db, 'expenses', id), newExpense);
+      await safeFirestoreWrite(() => setDoc(doc(db, 'expenses', id), newExpense), 'expenses');
     }
     autoSyncToGoogleSheets(undefined, newExpenses);
     return id;
@@ -430,7 +442,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
 
     if (db) {
-      await setDoc(doc(db, 'expenses', id), updated);
+      await safeFirestoreWrite(() => setDoc(doc(db, 'expenses', id), updated), 'expenses');
     }
     autoSyncToGoogleSheets(undefined, newExpenses);
   };
@@ -448,7 +460,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
 
     if (db) {
-      await deleteDoc(doc(db, 'expenses', id));
+      await safeFirestoreWrite(() => deleteDoc(doc(db, 'expenses', id)), 'expenses');
     }
     autoSyncToGoogleSheets(undefined, newExpenses);
   };
@@ -490,7 +502,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
 
     if (db) {
-      await setDoc(doc(db, 'attendance', id), session);
+      await safeFirestoreWrite(() => setDoc(doc(db, 'attendance', id), session), 'attendance');
     }
     autoSyncToGoogleSheets(undefined, undefined, updatedSessions);
     return id;
@@ -637,7 +649,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
 
     if (db) {
-      await setDoc(doc(db, 'settlements', id), newSettlement);
+      await safeFirestoreWrite(() => setDoc(doc(db, 'settlements', id), newSettlement), 'settlements');
     }
     autoSyncToGoogleSheets(undefined, undefined, undefined, newSettlements);
     return id;
@@ -656,7 +668,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
 
     if (db) {
-      await deleteDoc(doc(db, 'settlements', id));
+      await safeFirestoreWrite(() => deleteDoc(doc(db, 'settlements', id)), 'settlements');
     }
     autoSyncToGoogleSheets(undefined, undefined, undefined, newSettlements);
   };

@@ -124,7 +124,7 @@ export interface AuditLog {
     uid: string;
     name: string;
     email: string;
-    photoURL?: string;
+    photoURL?: string | null;
   };
   action: AuditActionType;
   targetType: 'expense' | 'attendance' | 'settlement' | 'member' | 'poll' | 'system';

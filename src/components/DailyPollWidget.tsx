@@ -3,6 +3,7 @@ import { format, addDays, isWeekend, parseISO } from 'date-fns';
 import { CheckCircle2, XCircle, UserPlus, Clock, Sparkles, AlertCircle } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const TIME_SLOT = '06:00 AM - 07:00 AM';
 
@@ -13,6 +14,7 @@ export const DailyPollWidget: React.FC<{
 }> = ({ selectedDate, onDateChange, onNavigateToCalendar }) => {
   const { currentUser, signInGoogle } = useAuth();
   const { members, attendanceSessions, polls, votePoll, addGuestToAttendance, toggleMemberAttendance } = useAppData();
+  const { showToast } = useToast();
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const tomorrowStr = format(addDays(new Date(), 1), 'yyyy-MM-dd');
@@ -48,14 +50,25 @@ export const DailyPollWidget: React.FC<{
     await votePoll(selectedDate, answer, timeSlot);
     setJustVoted(answer);
     setTimeout(() => setJustVoted(null), 3000);
+    showToast({
+      type: 'success',
+      title: answer === 'yes' ? "RSVP Recorded: You're Playing!" : 'RSVP Recorded: Not Joining',
+      description: `Your response for ${format(selectedDateObj, 'dd MMM yyyy')} has been saved.`,
+    });
   };
 
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!guestName.trim()) return;
-    await addGuestToAttendance(selectedDate, { name: guestName.trim() }, timeSlot);
+    const addedName = guestName.trim();
+    await addGuestToAttendance(selectedDate, { name: addedName }, timeSlot);
     setGuestName('');
     setShowGuestModal(false);
+    showToast({
+      type: 'success',
+      title: 'Guest Added',
+      description: `"${addedName}" was added to ${format(selectedDateObj, 'dd MMM yyyy')}.`,
+    });
   };
 
   const totalAttendeesCount = confirmedMemberIds.length + guestAttendees.length;

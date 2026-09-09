@@ -8,7 +8,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import {
-  getFirestore,
+  initializeFirestore,
   collection,
   doc,
   setDoc,
@@ -67,7 +67,10 @@ if (activeConfig && activeConfig.apiKey) {
   try {
     app = getApps().length === 0 ? initializeApp(activeConfig) : getApps()[0];
     auth = getAuth(app);
-    db = getFirestore(app);
+    // ignoreUndefinedProperties: several optional app fields (photoURL,
+    // details, monthTarget, etc.) can legitimately be undefined; Firestore
+    // otherwise rejects the whole write rather than just skipping them.
+    db = initializeFirestore(app, { ignoreUndefinedProperties: true });
   } catch (error) {
     console.warn('Firebase init error; falling back to offline/local mode', error);
   }
