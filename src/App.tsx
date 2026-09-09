@@ -12,27 +12,31 @@ import { AuditLogView } from './components/AuditLogView';
 import { ExpenseModal } from './components/ExpenseModal';
 import { SettlementModal } from './components/SettlementModal';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
-import { CloudConfigModal } from './components/CloudConfigModal';
+import { PollView } from './components/PollView';
 import { Expense } from './types';
 import { Plus } from 'lucide-react';
 
 import { AdminSheetView } from './components/AdminSheetView';
 
+type Tab = 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'sheet' | 'poll';
+
+const TAB_FOR_HASH: Record<string, Tab> = {
+  '#/sheet': 'sheet',
+  '#/poll': 'poll',
+};
+
 export const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'sheet'
-  >(() => {
-    if (window.location.hash === '#/sheet' || window.location.search.includes('tab=sheet')) {
-      return 'sheet';
-    }
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    if (TAB_FOR_HASH[window.location.hash]) return TAB_FOR_HASH[window.location.hash];
+    if (window.location.search.includes('tab=sheet')) return 'sheet';
     return 'dashboard';
   });
 
-  // Listen for hash change e.g. typing #/sheet
+  // Listen for hash change e.g. typing #/sheet or #/poll
   React.useEffect(() => {
     const handleHashChange = () => {
-      if (window.location.hash === '#/sheet') {
-        setActiveTab('sheet');
+      if (TAB_FOR_HASH[window.location.hash]) {
+        setActiveTab(TAB_FOR_HASH[window.location.hash]);
       }
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -44,7 +48,6 @@ export const AppContent: React.FC = () => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState<boolean>(false);
   const [isSheetsModalOpen, setIsSheetsModalOpen] = useState<boolean>(false);
-  const [isCloudSettingsOpen, setIsCloudSettingsOpen] = useState<boolean>(false);
 
   const handleOpenAddExpense = () => {
     setEditingExpense(null);
@@ -62,7 +65,6 @@ export const AppContent: React.FC = () => {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenCloudSettings={() => setIsCloudSettingsOpen(true)}
         onOpenSheetsModal={() => setIsSheetsModalOpen(true)}
         onOpenExpenseModal={handleOpenAddExpense}
       />
@@ -90,6 +92,8 @@ export const AppContent: React.FC = () => {
         {activeTab === 'audit' && <AuditLogView />}
 
         {activeTab === 'sheet' && <AdminSheetView />}
+
+        {activeTab === 'poll' && <PollView onNavigateTab={setActiveTab} />}
       </main>
 
       {/* Floating Action Button for Mobile */}
@@ -115,8 +119,6 @@ export const AppContent: React.FC = () => {
       <SettlementModal isOpen={isSettlementModalOpen} onClose={() => setIsSettlementModalOpen(false)} />
 
       <GoogleSheetsModal isOpen={isSheetsModalOpen} onClose={() => setIsSheetsModalOpen(false)} />
-
-      <CloudConfigModal isOpen={isCloudSettingsOpen} onClose={() => setIsCloudSettingsOpen(false)} />
     </div>
   );
 };

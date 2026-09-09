@@ -32,7 +32,6 @@ interface AppDataContextType {
   settlements: Settlement[];
   auditLogs: AuditLog[];
   memberBalances: MemberBalanceSummary[];
-  isCloudSynced: boolean;
   lastSyncedAt: string | null;
 
   // Actions
@@ -70,7 +69,6 @@ const STORAGE_KEY_AUDIT = 'shuttleledger_audit';
 export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
-  const [isCloudSynced, setIsCloudSynced] = useState<boolean>(!!db);
 
   // Core state with local storage hydration or seed fallback
   const [members, setMembers] = useState<Member[]>(() => {
@@ -134,7 +132,6 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const onError = (label: string) => (e: unknown) => {
       console.warn(`Firestore ${label} snapshot error (likely not signed in yet)`, e);
-      setIsCloudSynced(false);
     };
 
     try {
@@ -199,8 +196,6 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
         onError('audit_logs')
       );
 
-      setIsCloudSynced(true);
-
       return () => {
         unsubMembers();
         unsubExpenses();
@@ -210,7 +205,6 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
     } catch (e) {
       console.warn('Firestore snapshot error', e);
-      setIsCloudSynced(false);
     }
   }, [currentUser]);
 
@@ -686,7 +680,6 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
         settlements,
         auditLogs,
         memberBalances,
-        isCloudSynced,
         lastSyncedAt,
         addMember,
         updateMember,

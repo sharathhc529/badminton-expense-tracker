@@ -57,16 +57,6 @@ export function getSavedFirebaseConfig(): FirebaseConfig | null {
   return DEFAULT_FIREBASE_CONFIG;
 }
 
-export function saveFirebaseConfig(config: FirebaseConfig): void {
-  localStorage.setItem(STORAGE_KEY_FIREBASE_CONFIG, JSON.stringify(config));
-  window.location.reload();
-}
-
-export function clearFirebaseConfig(): void {
-  localStorage.removeItem(STORAGE_KEY_FIREBASE_CONFIG);
-  window.location.reload();
-}
-
 let app: FirebaseApp | null = null;
 let auth: ReturnType<typeof getAuth> | null = null;
 let db: Firestore | null = null;

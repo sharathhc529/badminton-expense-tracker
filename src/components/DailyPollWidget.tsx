@@ -4,17 +4,20 @@ import { CheckCircle2, XCircle, UserPlus, Clock, Sparkles, AlertCircle } from 'l
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 
-export const DailyPollWidget: React.FC<{ onNavigateToCalendar?: (date: string) => void }> = ({
-  onNavigateToCalendar,
-}) => {
+const TIME_SLOT = '06:00 AM - 07:00 AM';
+
+export const DailyPollWidget: React.FC<{
+  selectedDate: string;
+  onDateChange: (date: string) => void;
+  onNavigateToCalendar?: (date: string) => void;
+}> = ({ selectedDate, onDateChange, onNavigateToCalendar }) => {
   const { currentUser, signInGoogle } = useAuth();
   const { members, attendanceSessions, polls, votePoll, addGuestToAttendance, toggleMemberAttendance } = useAppData();
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const tomorrowStr = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+  const timeSlot = TIME_SLOT;
 
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
-  const [timeSlot, setTimeSlot] = useState<string>('06:00 AM - 07:00 AM');
   const [guestName, setGuestName] = useState<string>('');
   const [showGuestModal, setShowGuestModal] = useState<boolean>(false);
   const [justVoted, setJustVoted] = useState<string | null>(null);
@@ -88,7 +91,7 @@ export const DailyPollWidget: React.FC<{ onNavigateToCalendar?: (date: string) =
         {/* Date Selector Pills */}
         <div className="flex items-center space-x-1.5 bg-slate-800/90 p-1 rounded-xl border border-slate-700">
           <button
-            onClick={() => setSelectedDate(todayStr)}
+            onClick={() => onDateChange(todayStr)}
             className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
               selectedDate === todayStr ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
             }`}
@@ -96,7 +99,7 @@ export const DailyPollWidget: React.FC<{ onNavigateToCalendar?: (date: string) =
             Today ({format(new Date(), 'dd MMM')})
           </button>
           <button
-            onClick={() => setSelectedDate(tomorrowStr)}
+            onClick={() => onDateChange(tomorrowStr)}
             className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
               selectedDate === tomorrowStr ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
             }`}
@@ -106,7 +109,7 @@ export const DailyPollWidget: React.FC<{ onNavigateToCalendar?: (date: string) =
           <input
             type="date"
             value={selectedDate}
-            onChange={e => e.target.value && setSelectedDate(e.target.value)}
+            onChange={e => e.target.value && onDateChange(e.target.value)}
             className="bg-transparent text-xs text-slate-300 px-2 py-1 rounded-lg border border-slate-700 focus:outline-none focus:border-emerald-500"
           />
         </div>

@@ -4,50 +4,45 @@ import {
   Receipt,
   Users,
   History,
-  Cloud,
-  CloudOff,
   LogOut,
   LogIn,
-  Settings,
   Menu,
   X,
   FileSpreadsheet,
   Wallet,
   Sparkles,
+  Vote,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useAppData } from '../context/AppDataContext';
 
 interface NavbarProps {
-  activeTab: 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'sheet';
-  setActiveTab: (tab: 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'sheet') => void;
-  onOpenCloudSettings: () => void;
+  activeTab: 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'sheet' | 'poll';
+  setActiveTab: (
+    tab: 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'sheet' | 'poll'
+  ) => void;
   onOpenSheetsModal: () => void;
   onOpenExpenseModal: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({
-  activeTab,
-  setActiveTab,
-  onOpenCloudSettings,
-  onOpenSheetsModal,
-  onOpenExpenseModal,
-}) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenSheetsModal, onOpenExpenseModal }) => {
   const { currentUser, isAdmin, signInGoogle, signOut } = useAuth();
-  const { isCloudSynced } = useAppData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const baseNavItems = [
     { id: 'dashboard', label: 'Overview', icon: Sparkles },
     { id: 'calendar', label: 'Attendance & Calendar', icon: Calendar },
+    { id: 'poll', label: 'RSVP Poll', icon: Vote },
     { id: 'expenses', label: 'Expenses', icon: Receipt },
     { id: 'balances', label: 'Balances & Dues', icon: Wallet },
     { id: 'members', label: 'Players', icon: Users },
-    { id: 'audit', label: 'Audit Trail', icon: History },
   ] as const;
 
   const navItems = isAdmin
-    ? [...baseNavItems, { id: 'sheet' as const, label: '/sheet (Admin)', icon: FileSpreadsheet }]
+    ? [
+        ...baseNavItems,
+        { id: 'audit' as const, label: 'Audit Trail (Admin)', icon: History },
+        { id: 'sheet' as const, label: '/sheet (Admin)', icon: FileSpreadsheet },
+      ]
     : baseNavItems;
 
   return (
@@ -109,20 +104,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition"
             >
               <FileSpreadsheet className="w-5 h-5" />
-            </button>
-
-            {/* Cloud Sync Status Indicator */}
-            <button
-              onClick={onOpenCloudSettings}
-              title={isCloudSynced ? 'Connected to Firebase Cloud DB' : 'Using Offline-Ready Storage (Click to connect Firebase)'}
-              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
-                isCloudSynced
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
-              }`}
-            >
-              {isCloudSynced ? <Cloud className="w-3.5 h-3.5" /> : <CloudOff className="w-3.5 h-3.5" />}
-              <span className="hidden md:inline">{isCloudSynced ? 'Cloud Synced' : 'Offline / Local'}</span>
             </button>
 
             {/* Google User Profile */}
@@ -210,16 +191,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
                 <span>Sheets Sync</span>
-              </button>
-              <button
-                onClick={() => {
-                  onOpenCloudSettings();
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center space-x-1 text-xs text-slate-300 bg-slate-800 px-2.5 py-1.5 rounded-lg"
-              >
-                <Settings className="w-4 h-4 text-teal-400" />
-                <span>Cloud DB</span>
               </button>
             </div>
 

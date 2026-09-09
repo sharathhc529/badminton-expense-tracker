@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { History, Search, Filter, FileSpreadsheet, User, ShieldAlert, Tag } from 'lucide-react';
+import { History, Search, Filter, FileSpreadsheet, User, ShieldAlert, Tag, Lock, LogIn } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { useAuth, ADMIN_EMAIL } from '../context/AuthContext';
 import { AuditLog, AuditActionType } from '../types';
 import { exportAuditLogsToCSV } from '../services/sheetsExport';
 
 export const AuditLogView: React.FC = () => {
   const { auditLogs } = useAppData();
+  const { currentUser, isAdmin, signInGoogle } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedAction, setSelectedAction] = useState<string>('all');
@@ -44,6 +46,35 @@ export const AuditLogView: React.FC = () => {
         return <span className="bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-semibold">System</span>;
     }
   };
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-xl mx-auto my-12 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
+          <Lock className="w-7 h-7" />
+        </div>
+        <h2 className="text-xl font-bold text-white">Admin Access Required</h2>
+        <p className="text-xs text-slate-400 leading-relaxed max-w-md mx-auto">
+          The audit trail is restricted for group privacy. Only <strong className="text-white">{ADMIN_EMAIL}</strong>{' '}
+          has access to this view.
+        </p>
+
+        {currentUser ? (
+          <div className="text-xs text-slate-500 bg-slate-950 p-3 rounded-xl border border-slate-800">
+            Currently logged in as: <strong className="text-slate-300">{currentUser.email}</strong>
+          </div>
+        ) : (
+          <button
+            onClick={() => signInGoogle().catch(err => console.warn('Sign-in failed or cancelled', err))}
+            className="inline-flex items-center space-x-2 px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-xl text-xs shadow transition"
+          >
+            <LogIn className="w-4 h-4 text-emerald-600" />
+            <span>Sign in as {ADMIN_EMAIL}</span>
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

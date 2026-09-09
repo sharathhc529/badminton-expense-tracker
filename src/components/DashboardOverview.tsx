@@ -16,10 +16,9 @@ import {
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../services/calculation';
-import { DailyPollWidget } from './DailyPollWidget';
 
 interface DashboardOverviewProps {
-  onNavigateTab: (tab: 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit') => void;
+  onNavigateTab: (tab: 'dashboard' | 'calendar' | 'expenses' | 'balances' | 'members' | 'audit' | 'poll') => void;
   onOpenExpenseModal: () => void;
   onOpenSettlementModal: () => void;
 }
@@ -102,8 +101,23 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
       </div>
 
-      {/* Daily Poll & RSVP Widget (Prominently featured) */}
-      <DailyPollWidget onNavigateToCalendar={date => onNavigateTab('calendar')} />
+      {/* Daily Poll & RSVP teaser -> full experience lives at /poll */}
+      <button
+        onClick={() => onNavigateTab('poll')}
+        className="w-full flex items-center justify-between bg-gradient-to-r from-emerald-900/50 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 shadow-lg hover:border-emerald-500/60 transition text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-2.5 w-2.5 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+          </span>
+          <div>
+            <div className="text-sm font-bold text-white">🏸 Daily RSVP Poll</div>
+            <div className="text-xs text-slate-400">Mark your attendance for today's 6-7 AM session</div>
+          </div>
+        </div>
+        <ArrowRight className="w-4 h-4 text-emerald-400 shrink-0" />
+      </button>
 
       {/* Summary KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
