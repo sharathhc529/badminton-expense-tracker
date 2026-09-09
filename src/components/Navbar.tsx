@@ -147,7 +147,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             ) : (
               <button
-                onClick={() => signInGoogle()}
+                onClick={() => signInGoogle().catch(err => console.warn('Sign-in failed or cancelled', err))}
                 className="flex items-center space-x-1.5 px-3 py-1.5 bg-white text-slate-900 hover:bg-slate-100 text-sm font-semibold rounded-lg shadow transition"
               >
                 <LogIn className="w-4 h-4 text-emerald-600" />
@@ -237,7 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={() => {
-                  signInGoogle();
+                  signInGoogle().catch(err => console.warn('Sign-in failed or cancelled', err));
                   setMobileMenuOpen(false);
                 }}
                 className="flex items-center space-x-1 text-xs bg-white text-slate-900 font-semibold px-2.5 py-1.5 rounded-lg"

@@ -32,13 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {
       console.error(e);
     }
-    // Default logged in user for immediate experience
-    return {
-      uid: 'user_sharath_admin',
-      name: 'Sharath Chandra',
-      email: 'sharathhc529@gmail.com',
-      photoURL: 'https://api.dicebear.com/7.x/bottts/svg?seed=Sharath',
-    };
+    return null;
   });
 
   const [loading, setLoading] = useState<boolean>(true);

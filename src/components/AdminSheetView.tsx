@@ -63,7 +63,7 @@ export const AdminSheetView: React.FC = () => {
           </div>
         ) : (
           <button
-            onClick={() => signInGoogle()}
+            onClick={() => signInGoogle().catch(err => console.warn('Sign-in failed or cancelled', err))}
             className="inline-flex items-center space-x-2 px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-xl text-xs shadow transition"
           >
             <LogIn className="w-4 h-4 text-emerald-600" />

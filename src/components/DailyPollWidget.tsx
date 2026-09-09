@@ -35,7 +35,11 @@ export const DailyPollWidget: React.FC<{ onNavigateToCalendar?: (date: string) =
   // Handle voting
   const handleVote = async (answer: 'yes' | 'no') => {
     if (!currentUser) {
-      await signInGoogle();
+      try {
+        await signInGoogle();
+      } catch (err) {
+        console.warn('Sign-in failed or cancelled', err);
+      }
       return;
     }
     await votePoll(selectedDate, answer, timeSlot);

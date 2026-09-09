@@ -92,35 +92,18 @@ export async function loginWithGoogle(): Promise<{
   email: string;
   photoURL?: string;
 }> {
-  if (auth) {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      return {
-        uid: user.uid,
-        name: user.displayName || user.email?.split('@')[0] || 'Player',
-        email: user.email || '',
-        photoURL: user.photoURL || undefined,
-      };
-    } catch (err: any) {
-      console.error('Firebase Google login failed, falling back to profile prompt', err);
-    }
+  if (!auth) {
+    throw new Error('Firebase is not configured; Google sign-in is unavailable.');
   }
 
-  // Fallback demo user simulation if Firebase keys are not yet configured
-  const existingMock = localStorage.getItem('shuttleledger_current_user');
-  if (existingMock) {
-    return JSON.parse(existingMock);
-  }
-
-  const defaultUser = {
-    uid: 'user_sharath_' + Math.random().toString(36).substring(2, 7),
-    name: 'Sharath Chandra',
-    email: 'sharathhc529@gmail.com',
-    photoURL: 'https://api.dicebear.com/7.x/bottts/svg?seed=Sharath',
+  const result = await signInWithPopup(auth, googleProvider);
+  const user = result.user;
+  return {
+    uid: user.uid,
+    name: user.displayName || user.email?.split('@')[0] || 'Player',
+    email: user.email || '',
+    photoURL: user.photoURL || undefined,
   };
-  localStorage.setItem('shuttleledger_current_user', JSON.stringify(defaultUser));
-  return defaultUser;
 }
 
 export async function logoutUser(): Promise<void> {
