@@ -19,6 +19,7 @@ import {
 } from '../services/seedData';
 import { calculateMemberBalances, calculateSplits } from '../services/calculation';
 import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 import { db } from '../services/firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
@@ -66,6 +67,7 @@ const STORAGE_KEY_AUDIT = 'shuttleledger_audit';
 
 export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
+  const { showToast } = useToast();
   const [isCloudSynced, setIsCloudSynced] = useState<boolean>(!!db);
 
   // Core state with local storage hydration or seed fallback
@@ -219,6 +221,12 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
           settlements: activeS,
           balances: computedB,
         }),
+      });
+
+      showToast({
+        type: 'sheets_sync',
+        title: '📊 Google Sheet Synced',
+        description: 'Latest expenses, attendance & balances successfully saved to your Google Drive spreadsheet.',
       });
     } catch (e) {
       console.warn('Auto-sync to Google Sheets background warning:', e);

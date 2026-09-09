@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { AppDataProvider } from './context/AppDataContext';
 import { Navbar } from './components/Navbar';
 import { DashboardOverview } from './components/DashboardOverview';
@@ -102,10 +103,12 @@ export const AppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppDataProvider>
-        <AppContent />
-      </AppDataProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <AppDataProvider>
+          <AppContent />
+        </AppDataProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 }
