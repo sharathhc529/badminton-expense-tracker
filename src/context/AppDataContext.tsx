@@ -190,6 +190,41 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return calculateMemberBalances(members, expenses, settlements, attendanceSessions);
   }, [members, expenses, settlements, attendanceSessions]);
 
+  // Automatically dispatch to Google Sheets webhook if configured
+  const autoSyncToGoogleSheets = async (
+    customMembers?: Member[],
+    customExpenses?: Expense[],
+    customAttendance?: AttendanceSession[],
+    customSettlements?: Settlement[]
+  ) => {
+    try {
+      const webhookUrl = localStorage.getItem('shuttleledger_sheets_webhook');
+      if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com')) return;
+
+      const activeM = customMembers || members;
+      const activeE = customExpenses || expenses;
+      const activeA = customAttendance || attendanceSessions;
+      const activeS = customSettlements || settlements;
+      const computedB = calculateMemberBalances(activeM, activeE, activeS, activeA);
+
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        mode: 'no-cors',
+        body: JSON.stringify({
+          timestamp: new Date().toISOString(),
+          members: activeM,
+          expenses: activeE,
+          attendance: activeA,
+          settlements: activeS,
+          balances: computedB,
+        }),
+      });
+    } catch (e) {
+      console.warn('Auto-sync to Google Sheets background warning:', e);
+    }
+  };
+
   // Helper to log audit actions
   const logAudit = async (
     action: AuditActionType,
@@ -257,7 +292,8 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       createdAt: new Date().toISOString(),
     };
 
-    setMembers(prev => [...prev, newMember]);
+    const newMembers = [...members, newMember];
+    setMembers(newMembers);
     await logAudit(
       'ADD_MEMBER',
       'member',
@@ -267,6 +303,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (db) {
       await setDoc(doc(db, 'members', id), newMember);
     }
+    autoSyncToGoogleSheets(newMembers);
     return id;
   };
 
@@ -275,24 +312,28 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!target) return;
 
     const updated = { ...target, ...updates };
-    setMembers(prev => prev.map(m => (m.id === id ? updated : m)));
+    const newMembers = members.map(m => (m.id === id ? updated : m));
+    setMembers(newMembers);
     await logAudit('UPDATE_MEMBER', 'member', `${currentUser?.name || 'User'} updated member "${target.name}"`);
 
     if (db) {
       await setDoc(doc(db, 'members', id), updated);
     }
+    autoSyncToGoogleSheets(newMembers);
   };
 
   const deleteMember = async (id: string): Promise<void> => {
     const target = members.find(m => m.id === id);
     if (!target) return;
 
-    setMembers(prev => prev.filter(m => m.id !== id));
+    const newMembers = members.filter(m => m.id !== id);
+    setMembers(newMembers);
     await logAudit('DELETE_MEMBER', 'member', `${currentUser?.name || 'User'} removed member "${target.name}"`);
 
     if (db) {
       await deleteDoc(doc(db, 'members', id));
     }
+    autoSyncToGoogleSheets(newMembers);
   };
 
   // Expense CRUD
@@ -309,7 +350,8 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       createdAt: new Date().toISOString(),
     };
 
-    setExpenses(prev => [newExpense, ...prev]);
+    const newExpenses = [newExpense, ...expenses];
+    setExpenses(newExpenses);
     await logAudit(
       'CREATE_EXPENSE',
       'expense',
@@ -319,6 +361,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (db) {
       await setDoc(doc(db, 'expenses', id), newExpense);
     }
+    autoSyncToGoogleSheets(undefined, newExpenses);
     return id;
   };
 
@@ -327,7 +370,8 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!target) return;
 
     const updated = { ...target, ...updates };
-    setExpenses(prev => prev.map(e => (e.id === id ? updated : e)));
+    const newExpenses = expenses.map(e => (e.id === id ? updated : e));
+    setExpenses(newExpenses);
     await logAudit(
       'UPDATE_EXPENSE',
       'expense',
@@ -337,13 +381,15 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (db) {
       await setDoc(doc(db, 'expenses', id), updated);
     }
+    autoSyncToGoogleSheets(undefined, newExpenses);
   };
 
   const deleteExpense = async (id: string): Promise<void> => {
     const target = expenses.find(e => e.id === id);
     if (!target) return;
 
-    setExpenses(prev => prev.filter(e => e.id !== id));
+    const newExpenses = expenses.filter(e => e.id !== id);
+    setExpenses(newExpenses);
     await logAudit(
       'DELETE_EXPENSE',
       'expense',
@@ -353,6 +399,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (db) {
       await deleteDoc(doc(db, 'expenses', id));
     }
+    autoSyncToGoogleSheets(undefined, newExpenses);
   };
 
   // Attendance Management
@@ -375,9 +422,11 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updatedAt: new Date().toISOString(),
     };
 
+    let updatedSessions: AttendanceSession[] = [];
     setAttendanceSessions(prev => {
       const filtered = prev.filter(s => s.id !== id && !(s.date === session.date && s.timeSlot === session.timeSlot));
-      return [session, ...filtered];
+      updatedSessions = [session, ...filtered];
+      return updatedSessions;
     });
 
     const monthStr = session.date.slice(0, 7);
@@ -392,6 +441,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (db) {
       await setDoc(doc(db, 'attendance', id), session);
     }
+    autoSyncToGoogleSheets(undefined, undefined, updatedSessions);
     return id;
   };
 
@@ -527,7 +577,8 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       createdAt: new Date().toISOString(),
     };
 
-    setSettlements(prev => [newSettlement, ...prev]);
+    const newSettlements = [newSettlement, ...settlements];
+    setSettlements(newSettlements);
     await logAudit(
       'RECORD_SETTLEMENT',
       'settlement',
@@ -537,6 +588,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (db) {
       await setDoc(doc(db, 'settlements', id), newSettlement);
     }
+    autoSyncToGoogleSheets(undefined, undefined, undefined, newSettlements);
     return id;
   };
 
@@ -544,7 +596,8 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const target = settlements.find(s => s.id === id);
     if (!target) return;
 
-    setSettlements(prev => prev.filter(s => s.id !== id));
+    const newSettlements = settlements.filter(s => s.id !== id);
+    setSettlements(newSettlements);
     await logAudit(
       'RECORD_SETTLEMENT',
       'settlement',
@@ -554,6 +607,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (db) {
       await deleteDoc(doc(db, 'settlements', id));
     }
+    autoSyncToGoogleSheets(undefined, undefined, undefined, newSettlements);
   };
 
   const resetAllData = () => {
