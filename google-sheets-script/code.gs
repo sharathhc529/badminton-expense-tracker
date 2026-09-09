@@ -1,22 +1,71 @@
 /**
  * ShuttleLedger - Google Sheets Realtime Auto-Sync Script
  * 
- * Instructions:
- * 1. Open Google Sheets at https://sheets.new and name it "Badminton ShuttleLedger"
- * 2. Click Extensions > Apps Script
- * 3. Replace all code with this script and click "Save"
- * 4. Click "Deploy" > "New deployment"
- * 5. Select type: "Web app"
- *    - Description: ShuttleLedger Sync
+ * 💡 SETUP INSTRUCTIONS:
+ * 1. Open your Google Sheet in Google Drive (or create a new one at https://sheets.new)
+ * 2. Copy the Spreadsheet ID or full URL from your browser address bar:
+ *    Example URL: https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
+ *    The ID is the part between "/d/" and "/edit"
+ * 3. Paste your SPREADSHEET_ID or URL below in SPREADSHEET_ID_OR_URL.
+ * 4. Click "Save", then click "Deploy" > "New deployment" > "Web app"
  *    - Execute as: Me
  *    - Who has access: Anyone
- * 6. Click "Deploy", authorize access, and copy the "Web app URL"
- * 7. In ShuttleLedger app, click the Sheets icon at the top and paste your Web App URL!
+ * 5. Copy the Web App URL into ShuttleLedger!
  */
 
+// 👇 PASTE YOUR GOOGLE SPREADSHEET ID OR FULL GOOGLE SHEET URL HERE:
+var SPREADSHEET_ID_OR_URL = ""; 
+
+function getTargetSpreadsheet() {
+  if (SPREADSHEET_ID_OR_URL && SPREADSHEET_ID_OR_URL.trim() !== "") {
+    var raw = SPREADSHEET_ID_OR_URL.trim();
+    if (raw.indexOf("docs.google.com/spreadsheets/d/") !== -1) {
+      var matches = raw.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (matches && matches[1]) {
+        return SpreadsheetApp.openById(matches[1]);
+      }
+    }
+    return SpreadsheetApp.openById(raw);
+  }
+
+  // Fallback if script was created via Extensions > Apps Script
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+// GET endpoint to test if webhook is working in browser
+function doGet(e) {
+  try {
+    var ss = getTargetSpreadsheet();
+    if (!ss) {
+      return HtmlService.createHtmlOutput(
+        "<h3>⚠️ Webhook is active, but no Spreadsheet is linked yet!</h3>" +
+        "<p>Please open <code>code.gs</code>, paste your Google Sheet ID or URL in <code>SPREADSHEET_ID_OR_URL</code>, and redeploy.</p>"
+      );
+    }
+    return HtmlService.createHtmlOutput(
+      "<div style='font-family:sans-serif;padding:20px;'>" +
+      "<h2 style='color:#10b981;'>✅ ShuttleLedger Google Sheets Webhook is Online!</h2>" +
+      "<p>Connected to Google Sheet: <strong>" + ss.getName() + "</strong></p>" +
+      "<p>URL: <a href='" + ss.getUrl() + "' target='_blank'>" + ss.getUrl() + "</a></p>" +
+      "<p>Any change made in ShuttleLedger will automatically sync to this spreadsheet.</p>" +
+      "</div>"
+    );
+  } catch (err) {
+    return HtmlService.createHtmlOutput("<h3 style='color:red;'>Error connecting to spreadsheet: " + err.toString() + "</h3>");
+  }
+}
+
+// POST endpoint called automatically by ShuttleLedger on every update
 function doPost(e) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getTargetSpreadsheet();
+    if (!ss) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        message: "No spreadsheet found. Please set SPREADSHEET_ID_OR_URL in code.gs"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var data = JSON.parse(e.postData.contents);
     var timestamp = new Date();
 
@@ -100,15 +149,19 @@ function doPost(e) {
       attSheet.autoResizeColumns(1, 7);
     }
 
-    // Log sync event
+    // 4. Log Sync Event
     var syncLogSheet = ss.getSheetByName("Sync_Log") || ss.insertSheet("Sync_Log");
-    syncLogSheet.appendRow([timestamp, "Successful Sync", (data.expenses ? data.expenses.length : 0) + " Expenses, " + (data.balances ? data.balances.length : 0) + " Players"]);
+    syncLogSheet.appendRow([timestamp, "Successful Auto-Sync", (data.expenses ? data.expenses.length : 0) + " Expenses, " + (data.balances ? data.balances.length : 0) + " Players"]);
 
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Google Sheet updated successfully" }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      message: "Google Sheet '" + ss.getName() + "' updated successfully"
+    })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
